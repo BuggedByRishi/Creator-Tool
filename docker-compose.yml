@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: creatorhq
+      POSTGRES_PASSWORD: creatorhq
+      POSTGRES_DB: creatorhq
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creatorhq"]
+      interval: 3s
+      retries: 10
+
+  # Not used yet; the job queue (Asynq) arrives in week 3 with Gmail sync.
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  api:
+    build: .
+    profiles: ["full"]          # `docker compose --profile full up` to run the API in a container too
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://creatorhq:creatorhq@postgres:5432/creatorhq?sslmode=disable
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  pgdata:
